@@ -1,0 +1,21 @@
+Acme\SearchBundle\Entity\SearchIndexItem:
+    type: entity
+    table: search_index_item
+    repositoryClass: Acme\SearchBundle\Repository\SearchIndexItemRepository
+    id:
+        id:
+            type: integer
+            id: true
+            generator:
+                strategy: AUTO
+    fields:
+        entityType:
+            type: string
+            length: 255
+            column: entity_type
+        entityId:
+            type: integer
+            column: entity_id
+        content:
+            type: text
+    lifecycleCallbacks: {  }
