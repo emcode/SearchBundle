@@ -18,4 +18,5 @@ Acme\SearchBundle\Entity\SearchIndexItem:
             column: entity_id
         content:
             type: text
+            nullable: false
     lifecycleCallbacks: {  }

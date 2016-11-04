@@ -12,34 +12,45 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Acme\SearchBundle\Repository\SearchIndexItemRepository;
 use Acme\SearchBundle\Entity\SearchIndexItem;
+use Symfony\Component\Console\Question\Question;
 
-class AddItemToIndexCommand extends Command
+class AddItemToIndexCommand extends ContainerAwareCommand
 {
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
     protected function configure()
     {
         $this
             ->setName('search:index:add')
             ->setDescription('Add item to search index')
-            ->addArgument('command_name', InputArgument::OPTIONAL, 'The command name', 'empty arg');
+            ->addArgument('content', InputArgument::OPTIONAL, 'Content that will be searchable')
+            ->addArgument('entityId', InputArgument::OPTIONAL, 'Numeric id of connected entity')
+            ->addArgument('entityType', InputArgument::OPTIONAL, 'String identifier of entity');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $content = $input->getArgument('content');
+        $entityId = $input->getArgument('entityId');
+        $entityType = $input->getArgument('entityType');
 
-        $entity = $repository->buildSearchIndexItem("hmm", 23, "cool-type");
+        $serviceContainer = $this->getContainer();
+        $repository = $serviceContainer->get('search-index-item-repository');
 
+        if ($content && $entityId && $entityType)
+        {
+            $indexItem = $repository->buildSearchIndexItem($content, $entityId, $entityType);
 
-//        $name = $input->getArgument('command_name');
-//        $output->writeln($name);
-        $item = new SearchIndexItem();
+        } else
+        {
+            // @todo Refactor this to ask all needed questions (you can to this using array stuff if you want)
+            // we will ask some questions...
+            $question = new Question("Please type in searchable content: ");
+            /* @var $questionHelper \Symfony\Component\Console\Helper\QuestionHelper */
+            $questionHelper = $this->getHelper('question');
+            $content = $questionHelper->ask($input, $output, $question);
+        }
 
-        //find table by name ( if not found return notice )
-        //add items from found table to search index ( try / catch ? )
-        // return ok if everything done
+        $entityManager = $repository->getEm();
+        $entityManager->persist($indexItem);
+        $entityManager->flush();
     }
 }

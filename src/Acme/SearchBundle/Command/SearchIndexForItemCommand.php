@@ -2,6 +2,7 @@
 
 namespace Acme\SearchBundle\Command;
 
+use Acme\SearchBundle\Entity\SearchIndexItem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -9,13 +10,18 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Acme\SearchBundle\Repository\SearchIndexItemRepository;
-
+use Symfony\Component\DependencyInjection\Dump\Container;
 
 class SearchIndexForItemCommand extends Command
 {
+    /**
+     * @var SearchIndexItemRepository
+     */
+    protected $itemRepository;
 
-    public function __construct()
+    public function __construct(SearchIndexItemRepository $itemRepository)
     {
+        $this->itemRepository = $itemRepository;
         parent::__construct();
     }
 
@@ -24,15 +30,42 @@ class SearchIndexForItemCommand extends Command
         $this
             ->setName('search:index:find')
             ->setDescription('Search index for item')
-            ->addArgument('command_name', InputArgument::OPTIONAL, 'Remove item from search index', 'empty arg');
+            ->addArgument('searchPhrase', InputArgument::REQUIRED, 'Some search phrase');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $name = $input->getArgument('command_name');
-        $output->writeln($name);
+        $rawSearchPhrase = $input->getArgument('searchPhrase');
+        $normalizedLikePhrase = '%' . $rawSearchPhrase . '%';
+        $queryBuilder = $this->itemRepository->createQueryBuilder('sit');
+        $expressionBuilder = $queryBuilder->expr();
+        $queryBuilder->where(
+            $expressionBuilder->like('sit.content', ':someLikePhrase')
+        );
+        $queryBuilder->setParameter(':someLikePhrase', $normalizedLikePhrase);
+        $query = $queryBuilder->getQuery();
+        $output->writeln(sprintf("Searching for: %s", $normalizedLikePhrase));
 
-        //remove item from index ( try / catch ? )
-        // return ok if everything done
+        /* @var $matchingEntities SearchIndexItem[] */
+        $matchingEntities = $query->getResult();
+
+        if (!empty($matchingEntities))
+        {
+            $output->writeln("Matching items:");
+
+            foreach($matchingEntities as $entity)
+            {
+                $output->writeln(sprintf(
+                    "id: %s, entity id: %s, content: %s",
+                    $entity->getId(), $entity->getEntityId(), $entity->getContent()
+                ));
+            }
+
+        } else
+        {
+            $output->writeln("There are no matching entities in DB");
+        }
+
+        $output->writeln("Command complete!");
     }
 }

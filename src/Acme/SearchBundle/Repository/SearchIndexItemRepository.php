@@ -42,4 +42,12 @@ class SearchIndexItemRepository extends EntityRepository
         $e->setEntityType($entityType);
         return $e;
     }
+
+    /**
+     * @return EntityManager
+     */
+    public function getEm()
+    {
+        return $this->_em;
+    }
 }
