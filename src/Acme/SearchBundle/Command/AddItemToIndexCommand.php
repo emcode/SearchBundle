@@ -41,16 +41,35 @@ class AddItemToIndexCommand extends ContainerAwareCommand
 
         } else
         {
-            // @todo Refactor this to ask all needed questions (you can to this using array stuff if you want)
             // we will ask some questions...
-            $question = new Question("Please type in searchable content: ");
-            /* @var $questionHelper \Symfony\Component\Console\Helper\QuestionHelper */
-            $questionHelper = $this->getHelper('question');
-            $content = $questionHelper->ask($input, $output, $question);
+            $answers = $this->askQuestionsWith($input, $output);
+            $indexItem = $repository->buildSearchIndexItem($answers[0], $answers[1], $answers[2]);
         }
 
         $entityManager = $repository->getEm();
         $entityManager->persist($indexItem);
         $entityManager->flush();
+        $output->writeln('New entity has been successfully added to search index');
+    }
+
+
+    protected function askQuestionsWith(InputInterface $input, OutputInterface $output)
+    {
+
+        /* @var $questionHelper \Symfony\Component\Console\Helper\QuestionHelper */
+        $questionHelper = $this->getHelper('question');
+        $phrases = [
+            "Please type in searchable content: ",
+            "Please type in numeric id of connected entity: ",
+            "Please type in string identifier of entity:  "
+        ];
+        $answers = [];
+
+        foreach ($phrases as $text)
+        {
+            $answers[] = $questionHelper->ask($input, $output, new Question($text));
+        }
+
+        return $answers;
     }
 }

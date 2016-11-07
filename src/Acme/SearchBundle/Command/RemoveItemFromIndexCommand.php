@@ -32,7 +32,5 @@ class RemoveItemFromIndexCommand extends Command
         $name = $input->getArgument('command_name');
         $output->writeln($name);
 
-        //remove item from index ( try / catch ? )
-        // return ok if everything done
     }
 }
