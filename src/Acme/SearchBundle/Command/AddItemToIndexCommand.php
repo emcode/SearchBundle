@@ -35,12 +35,10 @@ class AddItemToIndexCommand extends ContainerAwareCommand
         $serviceContainer = $this->getContainer();
         $repository = $serviceContainer->get('search-index-item-repository');
 
-        if ($content && $entityId && $entityType)
-        {
+        if ($content && $entityId && $entityType) {
             $indexItem = $repository->buildSearchIndexItem($content, $entityId, $entityType);
 
-        } else
-        {
+        } else {
             // we will ask some questions...
             $answers = $this->askQuestionsWith($input, $output);
             $indexItem = $repository->buildSearchIndexItem($answers[0], $answers[1], $answers[2]);
@@ -65,8 +63,7 @@ class AddItemToIndexCommand extends ContainerAwareCommand
         ];
         $answers = [];
 
-        foreach ($phrases as $text)
-        {
+        foreach ($phrases as $text) {
             $answers[] = $questionHelper->ask($input, $output, new Question($text));
         }
 

@@ -6,6 +6,13 @@ services:
     tags:
       -
         name: "console.command"
+  remove-item-command:
+    class: Acme\SearchBundle\Command\RemoveItemFromIndexCommand
+    arguments:
+      - "@search-index-item-repository"
+    tags:
+      -
+        name: "console.command"
 
   search-index-item-metadata:
     class: Doctrine\ORM\Mapping\ClassMetadata
