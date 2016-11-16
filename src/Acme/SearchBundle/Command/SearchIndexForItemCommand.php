@@ -5,6 +5,7 @@ namespace Acme\SearchBundle\Command;
 use Acme\SearchBundle\Entity\SearchIndexItem;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -30,42 +31,55 @@ class SearchIndexForItemCommand extends Command
         $this
             ->setName('search:index:find')
             ->setDescription('Search index for item')
-            ->addArgument('searchPhrase', InputArgument::REQUIRED, 'Some search phrase');
+            ->addArgument('phrase', InputArgument::OPTIONAL, 'Search phrase - find items by content')
+            ->addOption('entity-type', 't', InputOption::VALUE_REQUIRED, 'Optional name of content type')
+            ->addOption('entity-id', 'i', InputOption::VALUE_REQUIRED, 'Optional id of index item');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $rawSearchPhrase = $input->getArgument('searchPhrase');
-        $normalizedLikePhrase = '%' . $rawSearchPhrase . '%';
-        $queryBuilder = $this->itemRepository->createQueryBuilder('sit');
-        $expressionBuilder = $queryBuilder->expr();
-        $queryBuilder->where(
-            $expressionBuilder->like('sit.content', ':someLikePhrase')
-        );
-        $queryBuilder->setParameter(':someLikePhrase', $normalizedLikePhrase);
-        $query = $queryBuilder->getQuery();
-        $output->writeln(sprintf("Searching for: %s", $normalizedLikePhrase));
+        $predicates = [];
 
-        /* @var $matchingEntities SearchIndexItem[] */
-        $matchingEntities = $query->getResult();
+        $phrase = $input->getArgument('phrase');
+        $entityType = $input->getOption('entity-type');
+        $entityId = $input->getOption('entity-id');
 
-        if (!empty($matchingEntities))
+        if (!empty($phrase))
         {
-            $output->writeln("Matching items:");
-
-            foreach($matchingEntities as $entity)
-            {
-                $output->writeln(sprintf(
-                    "id: %s, entity id: %s, content: %s",
-                    $entity->getId(), $entity->getEntityId(), $entity->getContent()
-                ));
-            }
-
-        } else
-        {
-            $output->writeln("There are no matching entities in DB");
+            $predicates['content'] = $phrase;
         }
 
-        $output->writeln("Command complete!");
+        if (!empty($entityType))
+        {
+            $predicates['entityType'] = $entityType;
+        }
+
+        if (!empty($entityId))
+        {
+            $predicates['entityId'] = $entityId;
+        }
+
+        if (empty($predicates))
+        {
+            $output->writeln('Please provide search phrase or search options');
+            return;
+        }
+
+        $items = $this->itemRepository->findItemsDynamically($predicates);
+
+        $table = new Table($output);
+        $table->setHeaders(array('id', 'entity id', 'entity type', 'content'))
+            ->setRows(array_map([$this, 'formatTableRow'], $items));
+        $table->render();
+    }
+
+    public function formatTableRow(SearchIndexItem $item)
+    {
+        return [
+            $item->getId(),
+            $item->getEntityId(),
+            $item->getEntityType(),
+            $item->getContent()
+        ];
     }
 }

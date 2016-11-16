@@ -50,4 +50,27 @@ class SearchIndexItemRepository extends EntityRepository
     {
         return $this->_em;
     }
+
+    /**
+     * @param array $predicatesAssoc
+     * @return SearchIndexItem[]
+     */
+    public function findItemsDynamically(array $predicatesAssoc)
+    {
+        $queryBuilder = $this->createQueryBuilder('sit');
+        $expBuilder = $queryBuilder->expr();
+
+        foreach($predicatesAssoc as $argName => $argValue)
+        {
+            if (!empty($argValue))
+            {
+                $queryBuilder->andWhere($expBuilder->eq('sit.' . $argName, ':' . $argName));
+                $queryBuilder->setParameter(':' . $argName, (int) $argValue);
+            }
+        }
+
+        $query = $queryBuilder->getQuery();
+        $items = $query->getResult();
+        return $items;
+    }
 }
